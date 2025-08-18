@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import '../features/auth/presentation/home_screen.dart';
 import '../features/auth/presentation/forgot_password_screen.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/onboarding_screen.dart';
@@ -17,6 +17,8 @@ class CustomRouter {
         return MaterialPageRoute(builder: (_) => const LoginScreen());
       case forgetPasswordScreen:
         return MaterialPageRoute(builder: (_) => const ForgotPasswordScreen());
+      case homeScreen:
+        return MaterialPageRoute(builder: (_) => const HomeScreen());
       default:
         return MaterialPageRoute(
           builder: (_) => const Scaffold(
