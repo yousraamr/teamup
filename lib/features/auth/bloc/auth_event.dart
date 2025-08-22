@@ -1,8 +1,19 @@
 import 'package:equatable/equatable.dart';
 
+import '../domain/entities/user_entity.dart';
+
 abstract class AuthEvent extends Equatable {
   @override
   List<Object?> get props => [];
+}
+
+class AuthStatusChanged extends AuthEvent {
+  final UserEntity? user;
+
+  AuthStatusChanged(this.user);
+
+  @override
+  List<Object?> get props => [user?.uid]; // stable equality
 }
 
 class SignInRequested extends AuthEvent {
