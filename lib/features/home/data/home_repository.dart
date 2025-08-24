@@ -20,12 +20,29 @@ class HomeRepository {
     return 'User';
   }
 
-  Future<List<String>> getUserTeams(String uid) async {
-    final doc = await _db.collection('users').doc(uid).get();
-    final data = doc.data();
+  Future<List<Map<String, String>>> getUserTeams(String uid) async {
+    final userDoc = await _db.collection('users').doc(uid).get();
+    final data = userDoc.data();
     if (data != null && data['teamId'] != null) {
-      final List<dynamic> raw = data['teamId'] is List ? data['teamId'] : [data['teamId']];
-      return raw.map((e) => e.toString()).toList();
+      // Split the string by comma and trim spaces
+      final List<String> teamIds = (data['teamId'] as String)
+          .split(',')
+          .map((e) => e.trim())
+          .toList();
+
+      List<Map<String, String>> teams = [];
+      for (var id in teamIds) {
+        final teamDoc = await _db.collection('teams').doc(id).get();
+        if (teamDoc.exists) {
+          final teamData = teamDoc.data()!;
+          teams.add({
+            'id': teamDoc.id,
+            'name': teamData['name'] ?? 'Team',
+            'initials': teamData['initials'] ?? '',
+          });
+        }
+      }
+      return teams;
     }
     return [];
   }

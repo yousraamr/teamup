@@ -101,11 +101,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 Text("Team Preview", style: h2),
                 const SizedBox(height: 10),
                 Column(
-                  children: state.teamIds.map((teamId) {
-                    // For now, display teamId as placeholder
+                  children: state.teams.map((team) {
                     return TeamPreview(
-                      teamName: teamId,
-                      initial: teamId[0].toUpperCase(),
+                      teamName: team['name'] ?? 'Team',
+                      initial: team['initials'] ?? '',
                     );
                   }).toList(),
                 ),

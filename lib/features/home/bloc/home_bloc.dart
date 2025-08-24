@@ -12,49 +12,57 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   StreamSubscription<List<TaskModel>>? _tasksSub;
   String? _uid;
 
-  HomeBloc({required this.repo}) : super(HomeState()) {
+  HomeBloc({required this.repo}) : super(const HomeState()) {
     on<HomeStarted>(_onHomeStarted);
-    on<TasksUpdated>((event, emit) {
-      emit(state.copyWith(loading: false, tasks: event.tasks));
-    });
+    on<TasksUpdated>(_onTasksUpdated);
     on<AddTaskRequested>(_onAddTask);
     on<UpdateTaskStatusRequested>(_onUpdateStatus);
     on<DeleteTaskRequested>(_onDeleteTask);
   }
 
+  /// Called when Home page starts
   Future<void> _onHomeStarted(HomeStarted event, Emitter<HomeState> emit) async {
     emit(state.copyWith(loading: true));
+    _uid = event.uid; // store UID for task operations
 
+    // Get user info
     final authUser = FirebaseAuth.instance.currentUser;
     String userName = authUser?.displayName ?? authUser?.email?.split('@')[0] ?? 'User';
 
-    // Fetch Firestore document if it exists
-    final doc = await FirebaseFirestore.instance.collection('users').doc(event.uid).get();
-    List<String> teamIds = [];
-    List<TaskModel> tasks = [];
-
-    if (doc.exists) {
-      final data = doc.data()!;
-      userName = data['name'] ?? userName; // use Firestore name if available
-      tasks = (data['tasks'] as List<dynamic>? ?? [])
-          .map((t) => TaskModel(
-        id: t['id'] ?? '',
-        title: t['title'] ?? '',
-        description: t['description'] ?? '',
-        status: t['status'] ?? 'pending',
-        dueDate: t['dueDate'] != null ? (t['dueDate'] as Timestamp).toDate() : null,
-      ))
-          .toList();
+    // Fetch user document
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(event.uid).get();
+    if (userDoc.exists) {
+      final data = userDoc.data()!;
+      userName = data['name'] ?? userName;
     }
 
+    // Fetch teams
+    final teams = await repo.getUserTeams(event.uid);
+
+    // Emit initial state (userName + teams)
     emit(state.copyWith(
       loading: false,
       userName: userName,
-      tasks: tasks,
-      teamIds: teamIds,
+      teams: teams,
+    ));
+
+    // Subscribe to tasks from subcollection
+    _tasksSub?.cancel();
+    _tasksSub = repo.tasksStream(event.uid).listen(
+          (tasks) => add(TasksUpdated(tasks)),
+      onError: (e) => emit(state.copyWith(error: e.toString())),
+    );
+  }
+
+  /// Update tasks in state
+  void _onTasksUpdated(TasksUpdated event, Emitter<HomeState> emit) {
+    emit(state.copyWith(
+      tasks: event.tasks,
+      loading: false,
     ));
   }
 
+  /// Add a new task
   Future<void> _onAddTask(AddTaskRequested event, Emitter<HomeState> emit) async {
     if (_uid == null) return;
     try {
@@ -69,6 +77,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     }
   }
 
+  /// Update task status
   Future<void> _onUpdateStatus(UpdateTaskStatusRequested event, Emitter<HomeState> emit) async {
     if (_uid == null) return;
     try {
@@ -78,6 +87,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     }
   }
 
+  /// Delete task
   Future<void> _onDeleteTask(DeleteTaskRequested event, Emitter<HomeState> emit) async {
     if (_uid == null) return;
     try {
