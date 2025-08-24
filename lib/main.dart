@@ -8,12 +8,15 @@ import 'features/auth/bloc/auth_bloc.dart';
 import 'features/auth/bloc/auth_state.dart';
 import 'features/auth/data/repositories/auth_repository_impl.dart';
 import 'features/auth/domain/repositories/auth_repository.dart';
+import 'firebase_options.dart';
 import 'routes/route_names.dart';
 import 'routes/custom_router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   final authRepository = AuthRepositoryImpl(
     firebaseAuth: FirebaseAuth.instance,
