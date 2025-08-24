@@ -64,7 +64,10 @@ class _LoginState extends State<LoginScreen>{
             );
           } else if (state is Authenticated) {
             Navigator.pop(context); // close loader
-            showSuccessSnackBar(context, "Login successful! Welcome ${state.user.name}");
+            showSuccessSnackBar(
+              context,
+              "Login successful! Welcome ${state.user.name ?? state.user.email}",
+            );
             Navigator.pushReplacementNamed(context, homeScreen);
           } else if (state is AuthError) {
             Navigator.pop(context); // close loader
