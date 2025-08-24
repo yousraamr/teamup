@@ -1,37 +1,36 @@
-import 'package:equatable/equatable.dart';
 import '../../../features/home/domain/models/task_model.dart';
 
-class HomeState extends Equatable {
+class HomeState {
+  final String? userName;
   final bool loading;
   final List<TaskModel> tasks;
-  final String? error;
-  final String? userName;
   final List<String> teamIds;
+  final String? error;
 
-  const HomeState({
+  HomeState({
+    this.userName,
     this.loading = false,
     this.tasks = const [],
+    this.teamIds = const [],
     this.error,
-    this.userName,
-  this.teamIds = const [], // initialize with empty list
   });
 
   HomeState copyWith({
+    String? userName,
     bool? loading,
     List<TaskModel>? tasks,
-    String? error,
-    String? userName,
     List<String>? teamIds,
+    String? error,
   }) {
     return HomeState(
+      userName: userName ?? this.userName,
       loading: loading ?? this.loading,
       tasks: tasks ?? this.tasks,
-      error: error,
-      userName: userName ?? this.userName,
       teamIds: teamIds ?? this.teamIds,
+      error: error ?? this.error,
     );
   }
 
   @override
-  List<Object?> get props => [loading, tasks, error, userName, teamIds];
+  List<Object?> get props => [userName, loading, tasks, teamIds, error];
 }
