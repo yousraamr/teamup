@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../features/home/data/home_repository.dart';
 import '../../../features/home/domain/models/task_model.dart';
@@ -10,8 +12,8 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   StreamSubscription<List<TaskModel>>? _tasksSub;
   String? _uid;
 
-  HomeBloc({required this.repo}) : super(const HomeState()) {
-    on<HomeStarted>(_onStarted);
+  HomeBloc({required this.repo}) : super(HomeState()) {
+    on<HomeStarted>(_onHomeStarted);
     on<TasksUpdated>((event, emit) {
       emit(state.copyWith(loading: false, tasks: event.tasks));
     });
@@ -20,29 +22,37 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     on<DeleteTaskRequested>(_onDeleteTask);
   }
 
-  Future<void> _onStarted(HomeStarted event, Emitter<HomeState> emit) async {
-    emit(state.copyWith(loading: true, error: null));
+  Future<void> _onHomeStarted(HomeStarted event, Emitter<HomeState> emit) async {
+    emit(state.copyWith(loading: true));
 
-    try {
-      final name = await repo.getUserName(event.uid);
-      emit(state.copyWith(userName: name));
-    } catch (e) {
-      emit(state.copyWith(error: e.toString()));
+    final authUser = FirebaseAuth.instance.currentUser;
+    String userName = authUser?.displayName ?? authUser?.email?.split('@')[0] ?? 'User';
+
+    // Fetch Firestore document if it exists
+    final doc = await FirebaseFirestore.instance.collection('users').doc(event.uid).get();
+    List<String> teamIds = [];
+    List<TaskModel> tasks = [];
+
+    if (doc.exists) {
+      final data = doc.data()!;
+      userName = data['name'] ?? userName; // use Firestore name if available
+      tasks = (data['tasks'] as List<dynamic>? ?? [])
+          .map((t) => TaskModel(
+        id: t['id'] ?? '',
+        title: t['title'] ?? '',
+        description: t['description'] ?? '',
+        status: t['status'] ?? 'pending',
+        dueDate: t['dueDate'] != null ? (t['dueDate'] as Timestamp).toDate() : null,
+      ))
+          .toList();
     }
 
-    // Cancel previous subscription if any
-    await _tasksSub?.cancel();
-
-    // Listen to tasks stream
-    _tasksSub = repo.tasksStream(event.uid).listen(
-          (tasks) {
-        // Instead of emit here, add a new event
-        add(TasksUpdated(tasks));
-      },
-      onError: (e) {
-        addError(e);
-      },
-    );
+    emit(state.copyWith(
+      loading: false,
+      userName: userName,
+      tasks: tasks,
+      teamIds: teamIds,
+    ));
   }
 
   Future<void> _onAddTask(AddTaskRequested event, Emitter<HomeState> emit) async {
