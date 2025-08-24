@@ -1,4 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../features/home/bloc/home_bloc.dart';
+import '../features/home/bloc/home_event.dart';
+import '../features/home/data/home_repository.dart';
 import '../features/home/presentation/pages/home_screen.dart';
 import '../features/auth/presentation/forgot_password_screen.dart';
 import '../features/auth/presentation/login_screen.dart';
@@ -18,7 +23,17 @@ class CustomRouter {
       case forgetPasswordScreen:
         return MaterialPageRoute(builder: (_) => const ForgotPasswordScreen());
       case homeScreen:
-        return MaterialPageRoute(builder: (_) => const HomeScreen());
+        return MaterialPageRoute(
+          builder: (_) {
+            final repo = HomeRepository(); // firestore inside
+            final uid = FirebaseAuth.instance.currentUser!.uid; // logged in user
+            return BlocProvider(
+              create: (_) => HomeBloc(repo: repo)..add(HomeStarted(uid)),
+              child: HomeScreen(uid: uid), // pass uid here
+            );
+          },
+        );
+
       default:
         return MaterialPageRoute(
           builder: (_) => const Scaffold(
